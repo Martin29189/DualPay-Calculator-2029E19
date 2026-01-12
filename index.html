@@ -1,42 +1,26 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DualPay</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Montserrat', sans-serif; background: #cfe9ff; overflow-x: hidden; }
+body { font-family: 'Montserrat', sans-serif; background: #cfe9ff; }
 h1,h2{ font-family: 'Comfortaa', cursive; }
-.bg-symbol{ position:absolute; font-size:3rem; opacity:0.25; animation: float 12s infinite ease-in-out; user-select:none; }
-@keyframes float {
- 0%{transform:translate(0,0) rotate(0deg) scale(1);}
- 50%{transform:translate(30px,-40px) rotate(10deg) scale(1.1);}
- 100%{transform:translate(0,0) rotate(0deg) scale(1);}
-}
+#result { transition: opacity 0.5s ease; }
+#result.hidden { opacity: 0; display: none; }
+#error.hidden { display: none; }
 </style>
 </head>
-<body class="min-h-screen flex items-center justify-center relative">
+<body class="min-h-screen flex items-center justify-center">
 
-<!-- Floating background symbols -->
-<div class="absolute inset-0 overflow-hidden">
-  <div class="bg-symbol left-10 top-10">Є</div>
-  <div class="bg-symbol right-10 top-20">лв</div>
-  <div class="bg-symbol left-20 bottom-20">лв</div>
-  <div class="bg-symbol right-20 bottom-10">Є</div>
-</div>
+<div class="w-full max-w-md p-6 rounded-3xl shadow-2xl bg-white/60 backdrop-blur-md">
 
-<div class="relative w-full max-w-md mx-auto p-6 rounded-3xl shadow-2xl backdrop-blur-lg bg-white/40">
+<h1 class="text-center text-2xl mb-4 font-bold">DualPay</h1>
 
-<!-- Logo -->
-<div class="flex justify-center mb-4">
-  <div class="bg-yellow-600 text-white px-4 py-2 rounded-2xl text-xl font-bold">Є лв</div>
-</div>
-
-<h1 class="text-center text-2xl mb-4">DualPay</h1>
-
-<!-- Amount -->
+<!-- Сума за плащане -->
 <div class="mb-3">
   <label class="block mb-1">Сума за плащане</label>
   <div class="flex gap-2">
@@ -48,29 +32,28 @@ h1,h2{ font-family: 'Comfortaa', cursive; }
   </div>
 </div>
 
-<!-- Paid -->
+<!-- Платено -->
 <div class="mb-3">
   <label>Платено в лв</label>
-  <input id="paidBGN" type="number" class="w-full p-2 rounded-xl bg-white/70">
+  <input id="paidBGN" type="number" class="w-full p-2 rounded-xl bg-white/70" placeholder="0.00">
 </div>
-
 <div class="mb-3">
   <label>Платено в Є</label>
-  <input id="paidEUR" type="number" class="w-full p-2 rounded-xl bg-white/70">
+  <input id="paidEUR" type="number" class="w-full p-2 rounded-xl bg-white/70" placeholder="0.00">
 </div>
 
-<!-- Error -->
-<div id="error" class="hidden bg-red-500 text-white p-2 rounded-xl text-center mb-2">
+<!-- Грешка -->
+<div id="error" class="bg-red-500 text-white p-2 rounded-xl text-center mb-2 hidden">
   Недостатъчно платена сума
 </div>
 
-<!-- Result -->
-<div id="result" class="hidden mt-4 p-4 rounded-2xl bg-green-700 text-white transition-opacity duration-500">
+<!-- Ресто -->
+<div id="result" class="mt-4 p-4 rounded-2xl bg-green-700 text-white hidden">
   <div class="flex justify-center mb-2">
     <button onclick="setResultCurrency('BGN')" class="px-3 py-1 bg-white/30 rounded-l-xl">лв</button>
     <button onclick="setResultCurrency('EUR')" class="px-3 py-1 bg-white/30 rounded-r-xl">Є</button>
   </div>
-  <div class="text-center text-xl" id="changeMain"></div>
+  <div class="text-center text-xl font-bold" id="changeMain"></div>
   <div class="text-center text-sm opacity-80" id="changeSecondary"></div>
 </div>
 
@@ -78,14 +61,63 @@ h1,h2{ font-family: 'Comfortaa', cursive; }
   Курс: 1 EUR = 1.95583 BGN<br>
   © ChatGPT
 </footer>
+
 </div>
 
 <script>
 const RATE = 1.95583;
 let resultCurrency = "BGN";
 
+// Вземане на елементи
+const price = document.getElementById("price");
+const priceCurrency = document.getElementById("priceCurrency");
+const paidBGN = document.getElementById("paidBGN");
+const paidEUR = document.getElementById("paidEUR");
+const error = document.getElementById("error");
+const result = document.getElementById("result");
+const changeMain = document.getElementById("changeMain");
+const changeSecondary = document.getElementById("changeSecondary");
+
 function calculate() {
-  const priceVal = parseFloat(document.getElementById('price').value) || 0;
-  const priceCurr = document.getElementById('priceCurrency').value;
-  const paidBGNVal = parseFloat(document.getElementById('paidBGN').value) || 0;
-  const paidEURVal = parseFloat(document.getElementById('paidEUR').value)
+  const priceVal = parseFloat(price.value) || 0;
+  const priceCurr = priceCurrency.value;
+  const paidBGNVal = parseFloat(paidBGN.value) || 0;
+  const paidEURVal = parseFloat(paidEUR.value) || 0;
+
+  // Цена в BGN
+  const priceBGN = priceCurr === "EUR" ? priceVal * RATE : priceVal;
+  const totalPaidBGN = paidBGNVal + paidEURVal * RATE;
+
+  if (totalPaidBGN < priceBGN) {
+    error.classList.remove("hidden");
+    result.classList.add("hidden");
+    return;
+  }
+
+  error.classList.add("hidden");
+
+  const changeBGN = totalPaidBGN - priceBGN;
+  const changeEUR = changeBGN / RATE;
+
+  if (resultCurrency === "BGN") {
+    changeMain.textContent = `Ресто: ${changeBGN.toFixed(2)} лв`;
+    changeSecondary.textContent = `≈ ${changeEUR.toFixed(2)} Є`;
+  } else {
+    changeMain.textContent = `Ресто: ${changeEUR.toFixed(2)} Є`;
+    changeSecondary.textContent = `≈ ${changeBGN.toFixed(2)} лв`;
+  }
+
+  result.classList.remove("hidden");
+}
+
+function setResultCurrency(curr) {
+  resultCurrency = curr;
+  calculate();
+}
+
+// Връзка към всички входни полета
+[price, priceCurrency, paidBGN, paidEUR].forEach(el => el.addEventListener("input", calculate));
+</script>
+
+</body>
+</html>
